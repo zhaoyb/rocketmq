@@ -30,6 +30,7 @@ import org.apache.rocketmq.common.protocol.ResponseCode;
  * Common Validator
  */
 public class Validators {
+
     public static final String VALID_PATTERN_STR = "^[%|a-zA-Z0-9_-]+$";
     public static final Pattern PATTERN = Pattern.compile(VALID_PATTERN_STR);
     public static final int CHARACTER_MAX_LENGTH = 255;
@@ -61,8 +62,8 @@ public class Validators {
 
         if (!regularExpressionMatcher(group, PATTERN)) {
             throw new MQClientException(String.format(
-                "the specified group[%s] contains illegal characters, allowing only %s", group,
-                VALID_PATTERN_STR), null);
+                    "the specified group[%s] contains illegal characters, allowing only %s", group,
+                    VALID_PATTERN_STR), null);
         }
 
     }
@@ -78,12 +79,15 @@ public class Validators {
         return matcher.matches();
     }
 
-    public static void checkMessage(Message msg, DefaultMQProducer defaultMQProducer)
-        throws MQClientException {
+    /**
+     * 检查 topic名称 和消息长度 是否合法
+     *
+     * */
+    public static void checkMessage(Message msg, DefaultMQProducer defaultMQProducer) throws MQClientException {
         if (null == msg) {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message is null");
         }
-        // topic
+        // topic 名称是否合法
         Validators.checkTopic(msg.getTopic());
 
         // body
@@ -97,7 +101,7 @@ public class Validators {
 
         if (msg.getBody().length > defaultMQProducer.getMaxMessageSize()) {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL,
-                "the message body size over max value, MAX: " + defaultMQProducer.getMaxMessageSize());
+                                        "the message body size over max value, MAX: " + defaultMQProducer.getMaxMessageSize());
         }
     }
 
@@ -106,21 +110,24 @@ public class Validators {
             throw new MQClientException("The specified topic is blank", null);
         }
 
+        //topic是否含有非法字符
         if (!regularExpressionMatcher(topic, PATTERN)) {
             throw new MQClientException(String.format(
-                "The specified topic[%s] contains illegal characters, allowing only %s", topic,
-                VALID_PATTERN_STR), null);
+                    "The specified topic[%s] contains illegal characters, allowing only %s", topic,
+                    VALID_PATTERN_STR), null);
         }
 
+        //topic 长度
         if (topic.length() > TOPIC_MAX_LENGTH) {
             throw new MQClientException(
-                String.format("The specified topic is longer than topic max length %d.", TOPIC_MAX_LENGTH), null);
+                    String.format("The specified topic is longer than topic max length %d.", TOPIC_MAX_LENGTH), null);
         }
 
         //whether the same with system reserved keyword
+        //topic是否是系统保留字段
         if (topic.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
             throw new MQClientException(
-                String.format("The topic[%s] is conflict with AUTO_CREATE_TOPIC_KEY_TOPIC.", topic), null);
+                    String.format("The topic[%s] is conflict with AUTO_CREATE_TOPIC_KEY_TOPIC.", topic), null);
         }
     }
 

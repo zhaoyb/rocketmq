@@ -18,8 +18,21 @@
 package org.apache.rocketmq.common.message;
 
 public enum MessageType {
+    /**
+     * 普通消息
+     */
     Normal_Msg,
+    /**
+     * 事物消息-half,类似于只发送 不提交
+     */
     Trans_Msg_Half,
+    /**
+     * 事物消息-commit
+     */
     Trans_msg_Commit,
+
+    /**
+     * 延迟消息
+     */
     Delay_Msg,
 }

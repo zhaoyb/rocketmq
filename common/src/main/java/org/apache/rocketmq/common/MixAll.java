@@ -45,6 +45,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 public class MixAll {
+
     public static final String ROCKETMQ_HOME_ENV = "ROCKETMQ_HOME";
     public static final String ROCKETMQ_HOME_PROPERTY = "rocketmq.home.dir";
     public static final String NAMESRV_ADDR_ENV = "NAMESRV_ADDR";
@@ -241,8 +242,11 @@ public class MixAll {
         printObjectProperties(logger, object, false);
     }
 
+    /**
+     * 打印对象的字段信息
+     */
     public static void printObjectProperties(final InternalLogger logger, final Object object,
-        final boolean onlyImportantField) {
+                                             final boolean onlyImportantField) {
         Field[] fields = object.getClass().getDeclaredFields();
         for (Field field : fields) {
             if (!Modifier.isStatic(field.getModifiers())) {
@@ -324,6 +328,9 @@ public class MixAll {
         return properties;
     }
 
+    /**
+     * 工具类，主要是将property文件中的配置，通过反射的方式  为object中相同名称的字段赋值
+     */
     public static void properties2Object(final Properties p, final Object object) {
         Method[] methods = object.getClass().getMethods();
         for (Method method : methods) {
@@ -392,8 +399,9 @@ public class MixAll {
         } catch (Throwable e) {
             try {
                 String candidatesHost = getLocalhostByNetworkInterface();
-                if (candidatesHost != null)
+                if (candidatesHost != null) {
                     return candidatesHost;
+                }
 
             } catch (Exception ignored) {
             }
@@ -438,8 +446,9 @@ public class MixAll {
         long prev = target.get();
         while (value > prev) {
             boolean updated = target.compareAndSet(prev, value);
-            if (updated)
+            if (updated) {
                 return true;
+            }
 
             prev = target.get();
         }
@@ -449,8 +458,9 @@ public class MixAll {
 
     public static String humanReadableByteCount(long bytes, boolean si) {
         int unit = si ? 1000 : 1024;
-        if (bytes < unit)
+        if (bytes < unit) {
             return bytes + " B";
+        }
         int exp = (int) (Math.log(bytes) / Math.log(unit));
         String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp - 1) + (si ? "" : "i");
         return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
