@@ -24,6 +24,7 @@ import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 
 public class TopicPublishInfo {
+
     private boolean orderTopic = false;
     private boolean haveTopicRouterInfo = false;
     private List<MessageQueue> messageQueueList = new ArrayList<MessageQueue>();
@@ -66,16 +67,28 @@ public class TopicPublishInfo {
         this.haveTopicRouterInfo = haveTopicRouterInfo;
     }
 
+    /**
+     *
+     * 队列选择算法，或者说broker选择算法，
+     *
+     * 默认如果不传lastBrokerName, 则通过轮询找出下一个broker
+     *
+     * 如果传了lastBrokerName, 则轮询找出下一个 不等于lastBrokerName 的broker
+     *
+     * */
     public MessageQueue selectOneMessageQueue(final String lastBrokerName) {
         if (lastBrokerName == null) {
+            //通过轮询算法获取下一个mq
             return selectOneMessageQueue();
         } else {
             int index = this.sendWhichQueue.getAndIncrement();
             for (int i = 0; i < this.messageQueueList.size(); i++) {
                 int pos = Math.abs(index++) % this.messageQueueList.size();
-                if (pos < 0)
+                if (pos < 0) {
                     pos = 0;
+                }
                 MessageQueue mq = this.messageQueueList.get(pos);
+                // 这个地方 是获取和上一个不一样的brokername
                 if (!mq.getBrokerName().equals(lastBrokerName)) {
                     return mq;
                 }
@@ -84,11 +97,15 @@ public class TopicPublishInfo {
         }
     }
 
+    /**
+     * 这里是一个轮询算法，依次获取下一个可用的mq
+     */
     public MessageQueue selectOneMessageQueue() {
         int index = this.sendWhichQueue.getAndIncrement();
         int pos = Math.abs(index) % this.messageQueueList.size();
-        if (pos < 0)
+        if (pos < 0) {
             pos = 0;
+        }
         return this.messageQueueList.get(pos);
     }
 
@@ -106,7 +123,7 @@ public class TopicPublishInfo {
     @Override
     public String toString() {
         return "TopicPublishInfo [orderTopic=" + orderTopic + ", messageQueueList=" + messageQueueList
-            + ", sendWhichQueue=" + sendWhichQueue + ", haveTopicRouterInfo=" + haveTopicRouterInfo + "]";
+                + ", sendWhichQueue=" + sendWhichQueue + ", haveTopicRouterInfo=" + haveTopicRouterInfo + "]";
     }
 
     public TopicRouteData getTopicRouteData() {
