@@ -91,6 +91,7 @@ public class NamesrvStartup {
 
         // 配置信息
         final NamesrvConfig namesrvConfig = new NamesrvConfig();
+        // netty 配置
         final NettyServerConfig nettyServerConfig = new NettyServerConfig();
 
         // 默认监听端口
@@ -98,8 +99,10 @@ public class NamesrvStartup {
 
         if (commandLine.hasOption('c')) {
             // c : configfile
+            //  如果有配置文件
             String file = commandLine.getOptionValue('c');
             if (file != null) {
+                // 读取配置文件
                 InputStream in = new BufferedInputStream(new FileInputStream(file));
                 properties = new Properties();
                 properties.load(in);
@@ -156,6 +159,7 @@ public class NamesrvStartup {
         }
 
         boolean initResult = controller.initialize();
+        // 初始化失败，退出
         if (!initResult) {
             controller.shutdown();
             System.exit(-3);

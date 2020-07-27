@@ -443,6 +443,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     /**
      * DEFAULT ASYNC -------------------------------------------------------
+     * 默认的异步发送消息
      */
     public void send(Message msg,
                      SendCallback sendCallback) throws MQClientException, RemotingException, InterruptedException {
@@ -555,11 +556,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                             msg.setTopic(this.defaultMQProducer.withNamespace(msg.getTopic()));
                         }
                         long costTime = beginTimestampPrev - beginTimestampFirst;
+                        // 这里选择路由就已经超时，直接跳出
                         if (timeout < costTime) {
                             callTimeout = true;
                             break;
                         }
-
+                        // 发送核心方法
                         sendResult = this.sendKernelImpl(msg, mq, communicationMode, sendCallback, topicPublishInfo, timeout - costTime);
                         endTimestamp = System.currentTimeMillis();
                         // 更新Broker可用性信息
@@ -670,6 +672,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     private TopicPublishInfo tryToFindTopicPublishInfo(final String topic) {
+        // 从本地获取topic信息，topic信息定期更新
         TopicPublishInfo topicPublishInfo = this.topicPublishInfoTable.get(topic);
         if (null == topicPublishInfo || !topicPublishInfo.ok()) {
             this.topicPublishInfoTable.putIfAbsent(topic, new TopicPublishInfo());

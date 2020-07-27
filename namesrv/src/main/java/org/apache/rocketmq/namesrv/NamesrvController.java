@@ -85,7 +85,7 @@ public class NamesrvController {
 
         this.registerProcessor();
 
-        //定期扫描不活跃的broker
+        //定期扫描不活跃的broker， 就是定期扫描broker的最后活跃时间。
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
