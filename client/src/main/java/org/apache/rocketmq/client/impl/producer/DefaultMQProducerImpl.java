@@ -807,6 +807,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
                 SendResult sendResult = null;
                 switch (communicationMode) {
+                    // 异步发送
                     case ASYNC:
                         Message tmpMessage = msg;
                         boolean messageCloned = false;
@@ -846,6 +847,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                                 this);
                         break;
                     case ONEWAY:
+                    //同步发送
                     case SYNC:
                         long costTimeSync = System.currentTimeMillis() - beginStartTime;
                         if (timeout < costTimeSync) {
