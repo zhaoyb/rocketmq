@@ -25,7 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.client.common.ThreadLocalIndex;
 
 /**
- * 发送消息  故障延迟 实现
+ * 发送消息  故障延迟负载 实现
  */
 public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> {
 

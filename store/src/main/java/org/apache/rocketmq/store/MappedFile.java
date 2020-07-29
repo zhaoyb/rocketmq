@@ -215,7 +215,9 @@ public class MappedFile extends ReferenceResource {
             } else {
                 return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
             }
+            // 位置指针偏移，指向写一次待写的位置
             this.wrotePosition.addAndGet(result.getWroteBytes());
+            // 最后一次存储时间
             this.storeTimestamp = result.getStoreTimestamp();
             return result;
         }
