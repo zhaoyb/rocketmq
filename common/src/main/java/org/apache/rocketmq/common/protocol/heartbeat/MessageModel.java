@@ -26,10 +26,14 @@ package org.apache.rocketmq.common.protocol.heartbeat;
 public enum MessageModel {
     /**
      * broadcast
+     * 广播模式，组内任何消费者都可以消费到
+     *
      */
     BROADCASTING("BROADCASTING"),
     /**
      * clustering
+     * 集群模式，每个人都只收到一部分，合力就是全部
+     *
      */
     CLUSTERING("CLUSTERING");
 

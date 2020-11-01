@@ -59,6 +59,18 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
  * <p>
  * <strong>Thread Safety:</strong> After initialization, the instance can be regarded as thread-safe.
  * </p>
+ *
+ *
+ * 这个消费类，虽然名字是是push，但其实是一个推拉结合的消费端，
+ * 消费者会发送请求给broker， broker如果有消息，会立刻返回， 如果没有消息，则会在服务端夯一段时间，当有数据的时候，立刻返回，利用的是长连接的方式。
+ *
+ * 纯推送方式： broker推送到消费端， broker压力会非常大，同时消费端的压力未知。
+ * 纯拉取方式： 消费者从broker拉取消息，但是拉取的间隔不是很好控制，如果太频繁，会造成服务端压力，如果不频繁，则消息会有延迟。
+ * 推拉结合方式： 综合了上面两种的有点，但是因为broker需要保持消费端的连接信息，如果这样适合对消费端数量可控的场景。
+ *
+ *
+ *
+ *
  */
 public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsumer {
 
@@ -93,6 +105,13 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     private MessageModel messageModel = MessageModel.CLUSTERING;
 
     /**
+     *
+     * 指定消费者在启动时的消费策略。
+     *
+     * 可以从上次消费的地方开始
+     *
+     * 如果是一个新的客户端，从最开始的地方消费，也可以指定时间戳消费。
+     *
      * Consuming point on consumer booting.
      * </p>
      *
@@ -212,16 +231,22 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     /**
      * Message pull Interval
+     *
+     * 消息拉取间隔
      */
     private long pullInterval = 0;
 
     /**
      * Batch consumption size
+     *
+     * 批量消费规模
      */
     private int consumeMessageBatchMaxSize = 1;
 
     /**
      * Batch pull size
+     *
+     * 批量拉取Size
      */
     private int pullBatchSize = 32;
 
@@ -268,6 +293,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     /**
      * Constructor specifying consumer group.
+     *
+     * 构造函数，指定consumer group
      *
      * @param consumerGroup Consumer group.
      */
@@ -685,10 +712,13 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     /**
      * This method gets internal infrastructure readily to serve. Instances must call this method after configuration.
      *
+     * 消费者开始消费
+     *
      * @throws MQClientException if there is any client error.
      */
     @Override
     public void start() throws MQClientException {
+        // 设置组名
         setConsumerGroup(NamespaceUtil.wrapNamespace(this.getNamespace(), this.consumerGroup));
         this.defaultMQPushConsumerImpl.start();
         if (null != traceDispatcher) {
@@ -721,6 +751,9 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     /**
      * Register a callback to execute on message arrival for concurrent consuming.
      *
+     *
+     * 注册一个回调函数用于消费。
+     *
      * @param messageListener message handling callback.
      */
     @Override
@@ -742,6 +775,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     /**
      * Subscribe a topic to consuming subscription.
+     *
+     * 订阅topic
      *
      * @param topic topic to subscribe.
      * @param subExpression subscription expression.it only support or operation such as "tag1 || tag2 || tag3" <br>

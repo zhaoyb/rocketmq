@@ -61,6 +61,7 @@ public class ProcessQueue {
     private volatile boolean locked = false;
     private volatile long lastLockTimestamp = System.currentTimeMillis();
     private volatile boolean consuming = false;
+    // 消息积压数量
     private volatile long msgAccCnt = 0;
 
     public boolean isLockExpired() {
@@ -72,6 +73,9 @@ public class ProcessQueue {
     }
 
     /**
+     *
+     * 清空到期消息
+     *
      * @param pushConsumer
      */
     public void cleanExpiredMsg(DefaultMQPushConsumer pushConsumer) {
@@ -124,6 +128,13 @@ public class ProcessQueue {
         }
     }
 
+    /**
+     *
+     * 将消息加入到msgTreeMap， 是一个TreeMap结构
+     *
+     * @param msgs
+     * @return
+     */
     public boolean putMessage(final List<MessageExt> msgs) {
         boolean dispatchToConsume = false;
         try {
@@ -131,13 +142,17 @@ public class ProcessQueue {
             try {
                 int validMsgCnt = 0;
                 for (MessageExt msg : msgs) {
+                    // 放入treemap,
                     MessageExt old = msgTreeMap.put(msg.getQueueOffset(), msg);
                     if (null == old) {
                         validMsgCnt++;
+                        // 最大offset
                         this.queueOffsetMax = msg.getQueueOffset();
+                        // 消息Size累加
                         msgSize.addAndGet(msg.getBody().length);
                     }
                 }
+                //消息数量累加
                 msgCount.addAndGet(validMsgCnt);
 
                 if (!msgTreeMap.isEmpty() && !this.consuming) {
@@ -146,11 +161,15 @@ public class ProcessQueue {
                 }
 
                 if (!msgs.isEmpty()) {
+                    // 最后一条消息
                     MessageExt messageExt = msgs.get(msgs.size() - 1);
+                    // 从最后一条消息中取出 max offset
                     String property = messageExt.getProperty(MessageConst.PROPERTY_MAX_OFFSET);
                     if (property != null) {
+                        // 最大offset 减去 最后一条消息offset
                         long accTotal = Long.parseLong(property) - messageExt.getQueueOffset();
                         if (accTotal > 0) {
+                            // 消息积压数量
                             this.msgAccCnt = accTotal;
                         }
                     }
@@ -165,6 +184,11 @@ public class ProcessQueue {
         return dispatchToConsume;
     }
 
+    /**
+     * 消息最大跨度，即 最大offset 减去 最小offset
+     *
+     * @return
+     */
     public long getMaxSpan() {
         try {
             this.lockTreeMap.readLock().lockInterruptibly();
@@ -182,6 +206,10 @@ public class ProcessQueue {
         return 0;
     }
 
+    /**
+     * 移除指定的消息
+     *
+     */
     public long removeMessage(final List<MessageExt> msgs) {
         long result = -1;
         final long now = System.currentTimeMillis();
@@ -243,6 +271,11 @@ public class ProcessQueue {
         this.locked = locked;
     }
 
+    /**
+     *
+     * 回滚操作，即把consumingMsgOrderlyTreeMap重新放回msgTreeMap
+     *
+     */
     public void rollback() {
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
@@ -257,6 +290,12 @@ public class ProcessQueue {
         }
     }
 
+    /**提交
+     *
+     * consumingMsgOrderlyTreeMap 设置为空
+     *
+     * @return
+     */
     public long commit() {
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
@@ -280,6 +319,12 @@ public class ProcessQueue {
         return -1;
     }
 
+    /**
+     *
+     * 重新消费
+     *
+     * @param msgs
+     */
     public void makeMessageToCosumeAgain(List<MessageExt> msgs) {
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
@@ -296,6 +341,12 @@ public class ProcessQueue {
         }
     }
 
+    /**
+     * 提取消息
+     *
+     * @param batchSize
+     * @return
+     */
     public List<MessageExt> takeMessags(final int batchSize) {
         List<MessageExt> result = new ArrayList<MessageExt>(batchSize);
         final long now = System.currentTimeMillis();
@@ -305,9 +356,11 @@ public class ProcessQueue {
             try {
                 if (!this.msgTreeMap.isEmpty()) {
                     for (int i = 0; i < batchSize; i++) {
+                        // 获取消息， firstEntry表示最小offset消息，并且删除
                         Map.Entry<Long, MessageExt> entry = this.msgTreeMap.pollFirstEntry();
                         if (entry != null) {
                             result.add(entry.getValue());
+                            // 有序队列，注意本地提取的消息，被放入到了consumingMsgOrderlyTreeMap
                             consumingMsgOrderlyTreeMap.put(entry.getKey(), entry.getValue());
                         } else {
                             break;
@@ -328,6 +381,9 @@ public class ProcessQueue {
         return result;
     }
 
+    /**
+     * 是否还有消息
+     */
     public boolean hasTempMessage() {
         try {
             this.lockTreeMap.readLock().lockInterruptibly();
@@ -342,6 +398,10 @@ public class ProcessQueue {
         return true;
     }
 
+    /**
+     * 清空消息
+     *
+     */
     public void clear() {
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
@@ -395,6 +455,11 @@ public class ProcessQueue {
         this.tryUnlockTimes.incrementAndGet();
     }
 
+    /**
+     *  填充信息
+     *
+     * @param info
+     */
     public void fillProcessQueueInfo(final ProcessQueueInfo info) {
         try {
             this.lockTreeMap.readLock().lockInterruptibly();
