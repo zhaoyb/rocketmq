@@ -90,15 +90,16 @@ public class Validators {
         // topic 名称是否合法
         Validators.checkTopic(msg.getTopic());
 
-        // body
+        // body 为null
         if (null == msg.getBody()) {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message body is null");
         }
-
+        // body 为空
         if (0 == msg.getBody().length) {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message body length is zero");
         }
 
+        // 大于最大消息长度
         if (msg.getBody().length > defaultMQProducer.getMaxMessageSize()) {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL,
                                         "the message body size over max value, MAX: " + defaultMQProducer.getMaxMessageSize());

@@ -22,17 +22,21 @@ import org.apache.rocketmq.store.ConsumeQueue;
 
 public class MessageStoreConfig {
     //The root directory in which the log data is kept
+    // // 存储根目录
     @ImportantField
     private String storePathRootDir = System.getProperty("user.home") + File.separator + "store";
 
     //The directory in which the commitlog is kept
+    //commit log 存储目录
     @ImportantField
     private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store"
         + File.separator + "commitlog";
 
     // CommitLog file size,default is 1G
+    // CommitLog每个文件大小 1G
     private int mappedFileSizeCommitLog = 1024 * 1024 * 1024;
     // ConsumeQueue file size,default is 30W
+    // ConsumeQueue每个文件大小 默认存储30W条消息
     private int mappedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQ_STORE_UNIT_SIZE;
     // enable consume queue ext
     private boolean enableConsumeQueueExt = false;
@@ -44,6 +48,7 @@ public class MessageStoreConfig {
 
     // CommitLog flush interval
     // flush data to disk
+    // CommitLog刷盘间隔时间（单位毫秒）
     @ImportantField
     private int flushIntervalCommitLog = 500;
 
@@ -59,19 +64,27 @@ public class MessageStoreConfig {
     private boolean useReentrantLockWhenPutMessage = false;
 
     // Whether schedule flush,default is real-time
+    // 是否定时方式刷盘，默认是实时刷盘
     @ImportantField
     private boolean flushCommitLogTimed = false;
     // ConsumeQueue flush interval
+    // ConsumeQueue刷盘间隔时间（单位毫秒）
     private int flushIntervalConsumeQueue = 1000;
     // Resource reclaim interval
+    // 清理资源间隔时间（单位毫秒）
     private int cleanResourceInterval = 10000;
     // CommitLog removal interval
+    // 删除多个CommitLog文件的间隔时间（单位毫秒）
     private int deleteCommitLogFilesInterval = 100;
     // ConsumeQueue removal interval
+    // 删除多个ConsumeQueue文件的间隔时间（单位毫秒）
     private int deleteConsumeQueueFilesInterval = 100;
+    // 强制删除文件间隔时间（单位毫秒）
     private int destroyMapedFileIntervalForcibly = 1000 * 120;
+    // 定期检查Hanged文件间隔时间（单位毫秒）
     private int redeleteHangedFileInterval = 1000 * 120;
     // When to delete,default is at 4 am
+    // 何时触发删除文件, 默认凌晨4点删除文件
     @ImportantField
     private String deleteWhen = "04";
     private int diskMaxUsedSpaceRatio = 75;

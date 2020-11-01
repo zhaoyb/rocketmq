@@ -52,11 +52,13 @@ public class KVConfigManager {
     public void load() {
         String content = null;
         try {
+            // 读取file内容
             content = MixAll.file2String(this.namesrvController.getNamesrvConfig().getKvConfigPath());
         } catch (IOException e) {
             log.warn("Load KV config table exception", e);
         }
         if (content != null) {
+            //string 转为对象
             KVConfigSerializeWrapper kvConfigSerializeWrapper =
                     KVConfigSerializeWrapper.fromJson(content, KVConfigSerializeWrapper.class);
             if (null != kvConfigSerializeWrapper) {

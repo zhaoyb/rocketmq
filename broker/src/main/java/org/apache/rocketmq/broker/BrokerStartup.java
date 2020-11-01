@@ -158,6 +158,7 @@ public class BrokerStartup {
 
             //name server address
             String namesrvAddr = brokerConfig.getNamesrvAddr();
+            // 检查是否可以转为SocketAddress
             if (null != namesrvAddr) {
                 try {
                     String[] addrArray = namesrvAddr.split(";");
@@ -172,6 +173,7 @@ public class BrokerStartup {
                 }
             }
 
+            // broker 角色
             switch (messageStoreConfig.getBrokerRole()) {
                 case ASYNC_MASTER:
                 case SYNC_MASTER:
