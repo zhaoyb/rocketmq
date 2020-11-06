@@ -213,6 +213,12 @@ public abstract class RebalanceImpl {
         }
     }
 
+    /**
+     *
+     * 平衡
+     *
+     * @param isOrder  是否是顺序消息
+     */
     public void doRebalance(final boolean isOrder) {
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
         if (subTable != null) {
@@ -237,6 +243,7 @@ public abstract class RebalanceImpl {
 
     private void rebalanceByTopic(final String topic, final boolean isOrder) {
         switch (messageModel) {
+            // 广播模式
             case BROADCASTING: {
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
                 if (mqSet != null) {
@@ -254,6 +261,7 @@ public abstract class RebalanceImpl {
                 }
                 break;
             }
+            // 集群模式
             case CLUSTERING: {
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
                 List<String> cidAll = this.mQClientFactory.findConsumerIdList(topic, consumerGroup);

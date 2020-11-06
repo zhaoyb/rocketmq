@@ -302,6 +302,10 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
+     *
+     * 同步发送消息
+     * 潜在的一个问题，这个接口会重试，重试有可能导致消息被发送到不同的broker,这个需要应用程序自己做处理
+     *
      * Send message in synchronous mode. This method returns only when the sending procedure totally completes. </p>
      *
      * <strong>Warn:</strong> this method has internal retry-mechanism, that is, internal implementation will retry
