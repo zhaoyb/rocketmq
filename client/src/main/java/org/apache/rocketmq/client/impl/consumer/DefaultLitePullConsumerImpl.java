@@ -899,6 +899,11 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
     }
 
+    /**
+     *
+     * 持久化offset
+     *
+     */
     @Override
     public void persistConsumerOffset() {
         try {

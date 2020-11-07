@@ -284,6 +284,16 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
         switch (status) {
             // 消费成功
+            /**
+             * 注意这里的一个问题， 即ackindex,
+             * 因为消费的时候，参数是一个list， 所以是批量消费的，如果在消费的过程中，有部分成功，部分失败 要怎么处理
+             * 遇到这种情况，遇到处理失败的，要把最后成功的index返回，即index之前的都是成功， index之后不再消费，默认都是失败，同时设置结果为CONSUME_SUCCESS
+             * 这样 rocketmq会把失败的重新发回到队列中去。
+             *
+             * 也因此，在消费的时候，如果需要非常精确的ack， 就不要再使用线程池。否则不能精确记录ack
+             *
+             *
+             */
             case CONSUME_SUCCESS:
                 if (ackIndex >= consumeRequest.getMsgs().size()) {
                     ackIndex = consumeRequest.getMsgs().size() - 1;
@@ -335,6 +345,17 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         }
 
         // 更新offset， 返回的是最小的offset
+        /**
+         *
+         * 这里注意一下：
+         * removeMessage返回的是msgTreeMap的最小值，因为是并行消费，这里举个例子：
+         * 1-10  11-20， 两批数据，    在msgTreeMap是按照顺序排列的，
+         * 因为是并行消费  11-20先消费完，从msgTreeMap移除，此时更新的offset 应该是1, 因为1-10此时还没有消费， 具体参考removeMessage方法
+         * 等1-10这批数据消费完之后， 再会取msgTreeMap的最小值，此时就有可能是21.
+         *
+         * 如果11-20更新完offset，  1-10消费时宕机，  下次会从offset 1 开始拉取，就有可能造成重复。 如有必要，就要考虑幂等
+         *
+         */
         long offset = consumeRequest.getProcessQueue().removeMessage(consumeRequest.getMsgs());
         if (offset >= 0 && !consumeRequest.getProcessQueue().isDropped()) {
             this.defaultMQPushConsumerImpl.getOffsetStore().updateOffset(consumeRequest.getMessageQueue(), offset, true);

@@ -51,6 +51,8 @@ public class ClientConfig {
     private int heartbeatBrokerInterval = 1000 * 30;
     /**
      * Offset persistent interval for consumer
+     * 5秒钟同步一次offset
+     *
      */
     private int persistConsumerOffsetInterval = 1000 * 5;
     private long pullTimeDelayMillsWhenException = 1000;
