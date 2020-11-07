@@ -299,6 +299,12 @@ public class MappedFileQueue {
         return -1;
     }
 
+    /**
+     *
+     * 调用MapedFileQueue类的方法获取在MapedFile队列中的最大Offset值，即为当前写入消息的最大位置。
+     *
+     * @return
+     */
     public long getMaxOffset() {
         MappedFile mappedFile = getLastMappedFile();
         if (mappedFile != null) {

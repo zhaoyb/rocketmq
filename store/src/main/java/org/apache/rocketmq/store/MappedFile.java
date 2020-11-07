@@ -205,6 +205,7 @@ public class MappedFile extends ReferenceResource {
 
         //当前的位置指针小于文件大小，表示还没有写满
         if (currentPos < this.fileSize) {
+            //写文件的buffer
             ByteBuffer byteBuffer = writeBuffer != null ? writeBuffer.slice() : this.mappedByteBuffer.slice();
             byteBuffer.position(currentPos);
             AppendMessageResult result;
@@ -225,6 +226,10 @@ public class MappedFile extends ReferenceResource {
         return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
     }
 
+    /**
+     * 当前文件的物理偏移
+     *
+     */
     public long getFileFromOffset() {
         return this.fileFromOffset;
     }

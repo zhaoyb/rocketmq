@@ -601,6 +601,7 @@ public class CommitLog {
 
             // Here settings are stored timestamp, in order to ensure an orderly
             // global
+            //存储时间戳， 确保有序
             msg.setStoreTimestamp(beginLockTimestamp);
 
             if (null == mappedFile || mappedFile.isFull()) {
@@ -612,11 +613,12 @@ public class CommitLog {
                 return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null));
             }
 
+            // 存储消息
             result = mappedFile.appendMessage(msg, this.appendMessageCallback);
             switch (result.getStatus()) {
                 case PUT_OK:
                     break;
-                case END_OF_FILE:
+                case END_OF_FILE:   // 如果文件空间不够，会重新创建一个文件，
                     unlockMappedFile = mappedFile;
                     // Create a new file, re-write the message
                     mappedFile = this.mappedFileQueue.getLastMappedFile(0);
@@ -1151,6 +1153,12 @@ public class CommitLog {
         return -1;
     }
 
+    /**
+     *
+     * 从MapedFileQueue中获取第一个MapedFile对象（即第一个文件），若该文件可用（MapedFile对象的availabe变量值）则返回该对象的fileFromOffset值，若不可用，则取下一个文件的起始偏移量，计算方式为：fileFromOffset值+文件的固定大小1G-fileFromOffset%1G。fileFromOffset%1G一般情况下为0。
+     *
+     * @return
+     */
     public long getMinOffset() {
         MappedFile mappedFile = this.mappedFileQueue.getFirstMappedFile();
         if (mappedFile != null) {
@@ -1509,7 +1517,7 @@ public class CommitLog {
     }
 
     class DefaultAppendMessageCallback implements AppendMessageCallback {
-        // File at the end of the minimum fixed length empty
+        // File at the end of the minimum fixed length empty  文件结尾的填充
         private static final int END_FILE_MIN_BLANK_LENGTH = 4 + 4;
         private final ByteBuffer msgIdMemory;
         private final ByteBuffer msgIdV6Memory;
@@ -1538,7 +1546,7 @@ public class CommitLog {
             // STORETIMESTAMP + STOREHOSTADDRESS + OFFSET <br>
 
             // PHY OFFSET
-            //文件物理偏移
+            //表示写入的开始物理地址  整个文件在磁盘物理偏移 + 当前文件的内的物理偏移
             long wroteOffset = fileFromOffset + byteBuffer.position();
 
             int sysflag = msgInner.getSysFlag();
@@ -1614,8 +1622,10 @@ public class CommitLog {
                 return new AppendMessageResult(AppendMessageStatus.MESSAGE_SIZE_EXCEEDED);
             }
 
-            // Determines whether there is sufficient free space
+            // Determines whether there is sufficient free space  如果文件空间不可用，即写入后 超过了定义的文件大小
             if ((msgLen + END_FILE_MIN_BLANK_LENGTH) > maxBlank) {
+                // 全部用空填充
+
                 this.resetByteBuffer(this.msgStoreItemMemory, maxBlank);
                 // 1 TOTALSIZE
                 this.msgStoreItemMemory.putInt(maxBlank);
@@ -1632,50 +1642,54 @@ public class CommitLog {
 
             // Initialization of storage space
             this.resetByteBuffer(msgStoreItemMemory, msgLen);
-            // 1 TOTALSIZE
+            // 1 TOTALSIZE  代表这个消息的大小
             this.msgStoreItemMemory.putInt(msgLen);
-            // 2 MAGICCODE
+            // 2 MAGICCODE 魔数
             this.msgStoreItemMemory.putInt(CommitLog.MESSAGE_MAGIC_CODE);
-            // 3 BODYCRC
+            // 3 BODYCRC 消息体BODY CRC 当broker重启recover时会校验
             this.msgStoreItemMemory.putInt(msgInner.getBodyCRC());
-            // 4 QUEUEID
+            // 4 QUEUEID  队列id,messagequeueid， 类似于kafka partition
             this.msgStoreItemMemory.putInt(msgInner.getQueueId());
             // 5 FLAG
             this.msgStoreItemMemory.putInt(msgInner.getFlag());
-            // 6 QUEUEOFFSET
+            // 6 QUEUEOFFSET  这个值是个自增值不是真正的consume queue的偏移量，可以代表这个consumeQueue队列或者tranStateTable队列中消息的个数，若是非事务消息或者commit事务消息，可以通过这个值查找到consumeQueue中数据，QUEUEOFFSET * 20才是偏移地址；若是PREPARED或者Rollback事务，则可以通过该值从tranStateTable中查找数据
             this.msgStoreItemMemory.putLong(queueOffset);
-            // 7 PHYSICALOFFSET
+            // 7 PHYSICALOFFSET  代表消息在commitLog中的物理起始地址偏移量
             this.msgStoreItemMemory.putLong(fileFromOffset + byteBuffer.position());
-            // 8 SYSFLAG
+            // 8 SYSFLAG 指明消息是事物事物状态等消息特征，二进制为四个字节从右往左数：当4个字节均为0（值为0）时表示非事务消息；当第1个字节为1（值为1）时表示表示消息是压缩的（Compressed）；当第2个字节为1（值为2）表示多消息（MultiTags）；当第3个字节为1（值为4）时表示prepared消息；当第4个字节为1（值为8）时表示commit消息；当第3/4个字节均为1时（值为12）时表示rollback消息；当第3/4个字节均为0时表示非事务消息；
             this.msgStoreItemMemory.putInt(msgInner.getSysFlag());
-            // 9 BORNTIMESTAMP
+            // 9 BORNTIMESTAMP  消息产生端(producer)的时间戳
             this.msgStoreItemMemory.putLong(msgInner.getBornTimestamp());
-            // 10 BORNHOST
+            // 10 BORNHOST 消息产生端(producer)地址(address:port)
             this.resetByteBuffer(bornHostHolder, bornHostLength);
             this.msgStoreItemMemory.put(msgInner.getBornHostBytes(bornHostHolder));
-            // 11 STORETIMESTAMP
+            // 11 STORETIMESTAMP 消息在broker存储时间
             this.msgStoreItemMemory.putLong(msgInner.getStoreTimestamp());
-            // 12 STOREHOSTADDRESS
+            // 12 STOREHOSTADDRESS 消息存储到broker的地址(address:port)
             this.resetByteBuffer(storeHostHolder, storeHostLength);
             this.msgStoreItemMemory.put(msgInner.getStoreHostBytes(storeHostHolder));
-            // 13 RECONSUMETIMES
+            // 13 RECONSUMETIMES 消息被某个订阅组重新消费了几次（订阅组之间独立计数）,因为重试消息发送到了topic名字为%retry%groupName的队列queueId=0的队列中去了，成功消费一次记录为0；
             this.msgStoreItemMemory.putInt(msgInner.getReconsumeTimes());
-            // 14 Prepared Transaction Offset
+            // 14 Prepared Transaction Offset  表示是prepared状态的事物消息
             this.msgStoreItemMemory.putLong(msgInner.getPreparedTransactionOffset());
-            // 15 BODY
+            // 15 BODY 消息体大小值
             this.msgStoreItemMemory.putInt(bodyLength);
+            // 消息体内容
             if (bodyLength > 0)
                 this.msgStoreItemMemory.put(msgInner.getBody());
-            // 16 TOPIC
+            // 16 TOPIC topic名称内容大小
             this.msgStoreItemMemory.put((byte) topicLength);
+            // topic的内容值
             this.msgStoreItemMemory.put(topicData);
-            // 17 PROPERTIES
+            // 17 PROPERTIES 属性值大小
             this.msgStoreItemMemory.putShort((short) propertiesLength);
+            // propertiesLength大小的属性数据
             if (propertiesLength > 0)
                 this.msgStoreItemMemory.put(propertiesData);
 
             final long beginTimeMills = CommitLog.this.defaultMessageStore.now();
             // Write messages to the queue buffer
+            // 写入
             byteBuffer.put(this.msgStoreItemMemory.array(), 0, msgLen);
 
             AppendMessageResult result = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, msgLen, msgId,
