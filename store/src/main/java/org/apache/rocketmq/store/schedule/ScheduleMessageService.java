@@ -111,11 +111,18 @@ public class ScheduleMessageService extends ConfigManager {
         return storeTimestamp + 1000;
     }
 
+    /**
+     * 延迟消息处理
+     *
+     */
     public void start() {
         if (started.compareAndSet(false, true)) {
             this.timer = new Timer("ScheduleMessageTimerThread", true);
+            // 获取所有的延迟配置
             for (Map.Entry<Integer, Long> entry : this.delayLevelTable.entrySet()) {
+                // 延迟级别
                 Integer level = entry.getKey();
+                // 延迟时间
                 Long timeDelay = entry.getValue();
                 Long offset = this.offsetTable.get(level);
                 if (null == offset) {
@@ -123,6 +130,7 @@ public class ScheduleMessageService extends ConfigManager {
                 }
 
                 if (timeDelay != null) {
+                    // 启动新线程开始处理
                     this.timer.schedule(new DeliverDelayedMessageTimerTask(level, offset), FIRST_DELAY_TIME);
                 }
             }
@@ -235,6 +243,7 @@ public class ScheduleMessageService extends ConfigManager {
         public void run() {
             try {
                 if (isStarted()) {
+                    // 处理逻辑
                     this.executeOnTimeup();
                 }
             } catch (Exception e) {
@@ -261,6 +270,7 @@ public class ScheduleMessageService extends ConfigManager {
         }
 
         public void executeOnTimeup() {
+            // 根据topic+queueid 获取消费队列
             ConsumeQueue cq =
                 ScheduleMessageService.this.defaultMessageStore.findConsumeQueue(SCHEDULE_TOPIC,
                     delayLevel2QueueId(delayLevel));
@@ -268,6 +278,7 @@ public class ScheduleMessageService extends ConfigManager {
             long failScheduleOffset = offset;
 
             if (cq != null) {
+                // 根据offset获取消息
                 SelectMappedBufferResult bufferCQ = cq.getIndexBuffer(this.offset);
                 if (bufferCQ != null) {
                     try {
